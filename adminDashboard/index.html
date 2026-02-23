@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CalmBook | Admin Dashboard</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <style>
+    :root {
+      /* CalmBook Theme */
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #a855f7;
+      --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+      --glass-bg: rgba(255, 255, 255, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-light: rgba(255, 255, 255, 0.3);
+      
+      /* Status Colors */
+      --success: #10B981;
+      --success-bg: #ECFDF5;
+      --warning: #F59E0B;
+      --warning-bg: #FFFBEB;
+      --danger: #EF4444;
+      --danger-bg: #FEF2F2;
+      --info: #3B82F6;
+      --info-bg: #EFF6FF;
+
+      /* Spacing & Radius */
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --sidebar-width: 280px;
+      --header-height: 70px;
+    }
+
+    /* Dark Mode */
+    body.dark-mode {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      --glass-bg: rgba(30, 41, 59, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --info-bg: rgba(59, 130, 246, 0.15);
+    }
+
+    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* --- SIDEBAR --- */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(to bottom, rgba(99, 102, 241, 0.95), rgba(168, 85, 247, 0.95));
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .sidebar::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+      background-size: 24px 24px; pointer-events: none;
+    }
+    .sidebar-close-btn { display: none; position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; z-index: 10; }
+
+    .brand { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 700; margin-bottom: 40px; color: #fff; position: relative; z-index: 2; }
+    .brand h1 { font-size: 28px; margin: 0; }
+    .brand-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+
+    .nav-links { list-style: none; padding: 0; margin: 0; flex: 1; position: relative; z-index: 2; }
+    .nav-item { margin-bottom: 8px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+      color: rgba(255,255,255,0.8); text-decoration: none; border-radius: 14px;
+      font-weight: 600; transition: all 0.2s; cursor: pointer; border: 1px solid transparent;
+    }
+    .nav-link:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+    .nav-link.active { background: rgba(255, 255, 255, 0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .nav-link .material-icons-round { font-size: 22px; }
+
+    .user-profile { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.15); position: relative; z-index: 2; }
+    .user-info-row { display: flex; align-items: center; gap: 14px; }
+    
+    .avatar { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #fff, #e0e7ff); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+
+    /* Status Styling */
+    .status-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 12px; }
+    .status-display { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); transition: background-color 0.3s; box-shadow: 0 0 0 2px rgba(0,0,0,0.2); }
+    .status-dot.available { background-color: var(--success); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+    .status-dot.busy { background-color: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+    .status-toggle-btn { background: rgba(255,255,255,0.1); border: none; color: var(--text-light); cursor: pointer; font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; transition: 0.2s; }
+    .status-toggle-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .logout-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; margin-left: auto; }
+    .logout-btn:hover { background: rgba(239, 68, 68, 0.3); border-color: rgba(239,68,68,0.5); }
+
+    /* --- MAIN CONTENT --- */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-width: 0; }
+
+    /* Header */
+    header {
+      height: var(--header-height); background: var(--glass-bg); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 32px; z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-main); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .icon-btn {
+      background: var(--glass-bg); border: 1px solid var(--glass-border); width: 42px; height: 42px;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); cursor: pointer; transition: 0.2s; position: relative;
+    }
+    .icon-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--info-bg); }
+
+    /* Notification Badge & Panel */
+    .badge { position: absolute; top: -4px; right: -4px; background: var(--danger); color: white; font-size: 10px; font-weight: 700; height: 18px; min-width: 18px; padding: 0 4px; border-radius: 10px; display: none; align-items: center; justify-content: center; border: 2px solid var(--glass-bg); }
+    .badge.show { display: flex; }
+    
+    .notif-panel { position: fixed; top: 80px; right: 32px; width: 340px; max-height: 450px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 200; display: none; flex-direction: column; overflow: hidden; backdrop-filter: blur(20px); }
+    .notif-panel.show { display: flex; animation: slideDown 0.2s ease-out; }
+    .notif-header { padding: 16px 20px; border-bottom: 1px solid var(--glass-border); font-weight: 700; display: flex; justify-content: space-between; font-size: 15px; }
+    .notif-list { overflow-y: auto; flex: 1; }
+    .notif-item { padding: 14px 20px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: 0.2s; }
+    .notif-item:hover { background: var(--info-bg); }
+    .notif-item.unread { background: var(--info-bg); border-left: 3px solid var(--primary); }
+    .notif-item .title { font-weight: 600; font-size: 14px; margin-bottom: 2px; display: block;}
+    .notif-item .msg { font-size: 13px; color: var(--text-muted); display: block; }
+    .notif-item .time { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;}
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- VIEWS --- */
+    .view-section { display: none; height: 100%; flex-direction: column; }
+    .view-section.active { display: flex; animation: fadeIn 0.4s ease; }
+    .content-scroll { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; }
+    
+    /* Dashboard Layout */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+    @media (max-width: 1000px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    /* Glass Card */
+    .glass-card {
+      margin-top: 20px;
+      background: var(--glass-bg); backdrop-filter: blur(20px); border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border); padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column;
+    }
+    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--glass-bg); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Booking Items */
+    .booking-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border); margin-bottom: 12px; transition: 0.2s; }
+    body.dark-mode .booking-item { background: rgba(30, 41, 59, 0.6); }
+    .booking-item:hover { border-color: var(--primary); transform: translateY(-1px); background: #fff; }
+    body.dark-mode .booking-item:hover { background: rgba(30, 41, 59, 0.9); }
+    
+    .booking-item.clickable { cursor: pointer; }
+    
+    .client-profile-block { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .client-text { display: flex; flex-direction: column; gap: 2px; }
+    
+    .booking-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
+    .booking-info p { margin: 0; font-size: 13px; color: var(--text-muted); }
+    .booking-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+    
+    .booking-actions { display: flex; gap: 8px; }
+    .btn { border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; }
+    .btn-accept { background: var(--success-bg); color: var(--success); }
+    .btn-accept:hover { background: var(--success); color: white; }
+    .btn-decline { background: var(--danger-bg); color: var(--danger); }
+    .btn-decline:hover { background: var(--danger); color: white; }
+    .btn-chat { background: var(--info-bg); color: var(--info); }
+    .btn-chat:hover { background: var(--info); color: white; }
+
+    /* --- CHAT CONTAINER (New Layout) --- */
+    .chat-container { display: grid; grid-template-columns: 320px 1fr; height: 100%; background: var(--bg-gradient); border-radius: 0; overflow: hidden; }
+    
+    /* Panes */
+    .counselor-pane { border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; background: var(--glass-bg); position: relative; }
+    .chat-pane { display: flex; flex-direction: column; background: var(--bg-gradient); position: relative; }
+
+    .chat-header { padding: 16px 24px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 12px; background: var(--glass-bg); flex-shrink: 0; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+    
+    .message { max-width: 70%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+    .message.sent { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+    .message.received { align-self: flex-start; background: var(--glass-bg); border: 1px solid var(--glass-border); border-bottom-left-radius: 4px; }
+    
+    .chat-input-area { padding: 16px 24px; border-top: 1px solid var(--glass-border); background: var(--glass-bg); display: flex; gap: 12px; flex-shrink: 0; }
+    .chat-input { flex: 1; border-radius: 24px; padding-left: 20px; background: var(--bg-body); border: 1px solid var(--border); color: var(--text-main); }
+    
+    /* Empty State */
+    .empty-state { text-align: center; padding: 30px; color: var(--text-muted); font-size: 13px; }
+    
+    /* Mobile Toggle */
+    .mobile-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 1024px) {
+      .sidebar { position: fixed; left: -100%; height: 100%; width: 280px; box-shadow: var(--shadow-glass); }
+      .sidebar.active { left: 0; }
+      .sidebar-close-btn { display: flex; align-items: center; justify-content: center; }
+      .mobile-toggle { display: block; }
+      header { padding: 0 16px; }
+      .content-scroll { padding: 16px; }
+      .glass-card { padding: 20px; }
+      
+      /* Mobile Chat Logic */
+      .chat-container { display: block; position: relative; height: 100%; }
+      .counselor-pane { position: absolute; width: 100%; height: 100%; z-index: 10; left: 0; top: 0; transition: transform 0.3s; transform: translateX(0); }
+      .chat-pane { position: absolute; width: 100%; height: 100%; z-index: 20; left: 0; top: 0; transform: translateX(100%); transition: transform 0.3s; }
+      .chat-container.chat-active .counselor-pane { transform: translateX(-100%); }
+      .chat-container.chat-active .chat-pane { transform: translateX(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close-btn" onclick="toggleSidebar()"><span class="material-icons-round">close</span></button>
+    
+    <div class="brand">
+      <div class="brand-icon">
+        <span class="material-icons-round">admin_panel_settings</span>
+      </div>
+      <h1>CalmBook</h1>
+    </div>
+ 
+    <ul class="nav-links">
+      <li class="nav-item">
+        <a class="nav-link active" id="nav-dashboard" onclick="switchView('dashboard')">
+          <span class="material-icons-round">dashboard</span> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="nav-clients" onclick="switchView('clients')">
+          <span class="material-icons-round">people</span> Clients
+        </a>
+      </li>
+    </ul>
+    
+    <div class="user-profile">
+      <div class="user-info-row">
+        <div class="avatar" id="user-avatar">A</div>
+        <div style="flex:1; overflow:hidden;">
+          <div id="user-name" style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Admin</div>
+          <div style="font-size:12px; opacity:0.8;">Counselor</div>
+        </div>
+        <button class="logout-btn" onclick="logout()"><span class="material-icons-round">logout</span></button>
+      </div>
+
+      <div class="status-row">
+        <div class="status-display">
+          <div class="status-dot available" id="admin-status-dot"></div>
+          <span id="admin-status-text">Available</span>
+        </div>
+        <button class="status-toggle-btn" onclick="toggleAdminStatus()" id="status-toggle-btn">Change</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <!-- Header -->
+    <header>
+      <div class="header-left">
+        <button class="mobile-toggle" onclick="toggleSidebar()"><span class="material-icons-round">menu</span></button>
+        <h2 class="page-title" id="header-title">Dashboard</h2>
+      </div>
+      
+      <div class="header-actions">
+        <button class="icon-btn" id="notif-btn">
+          <span class="material-icons-round">notifications</span>
+          <div class="badge" id="notif-badge">0</div>
+        </button>
+        <button class="icon-btn" id="theme-toggle"><span class="material-icons-round">dark_mode</span></button>
+      </div>
+    </header>
+
+    <!-- Notification Dropdown -->
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-header">
+        Notifications
+        <span style="font-size:11px; color:var(--primary); cursor:pointer;" onclick="markAllRead()">Mark all read</span>
+      </div>
+      <div class="notif-list" id="notif-list">
+        <div class="empty-state">No new notifications</div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="view-section active">
+      <div class="content-scroll">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="stat-pending">0</div><div class="stat-label">Pending Requests</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-confirmed">0</div><div class="stat-label">Confirmed Today</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Bookings</div></div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div>
+            <div class="glass-card">
+              <div class="card-title"><span class="material-icons-round" style="color:var(--warning)">pending_actions</span> Pending Requests</div>
+              <div id="pending-list"></div>
+            </div>
+            <div class="glass-card">
+              <div class="card-title"><span class="material-icons-round" style="color:var(--success)">event_available</span> Upcoming Schedule</div>
+              <div id="schedule-list"></div>
+            </div>
+          </div>
+          
+          <div>
+             <div class="glass-card" style="height: 100%;">
+              <div class="card-title"><span class="material-icons-round" style="color:var(--text-muted)">history</span> Past & Finished Clients</div>
+              <div id="finished-list" style="overflow-y:auto; max-height:600px;"></div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENT VIEW -->
+    <div id="view-clients" class="view-section">
+       <!-- New Container for Sliding Effect -->
+       <div class="chat-container" id="chat-container">
+        
+        <!-- Left Pane: Client List -->
+        <div class="counselor-pane">
+          <div class="chat-header" style="border:none; background:transparent;"><h3 style="font-size:18px; font-weight:700;">All Clients</h3></div>
+          <div id="all-clients-list" class="session-list" style="padding:0 10px 20px;"></div>
+        </div>
+
+        <!-- Right Pane: Chat -->
+        <div class="chat-pane">
+          <div class="chat-header">
+            <button class="mobile-toggle" onclick="closeChat()"><span class="material-icons-round">arrow_back</span></button>
+            <div class="avatar" id="chat-avatar">?</div>
+            <div>
+              <h4 style="margin:0; font-size:16px;" id="chat-partner-name">Select a client</h4>
+              <p style="margin:0; font-size:12px; color:var(--text-muted);" id="chat-status">Waiting...</p>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div style="text-align:center; margin:auto; color:var(--text-muted);">
+              <span class="material-icons-round" style="font-size:40px; display:block; margin-bottom:10px;">forum</span>
+              Select a client from the list to start chatting.
+            </div>
+          </div>
+          <form class="chat-input-area" id="chat-form">
+            <input type="text" class="chat-input" id="message-input" placeholder="Type a message..." disabled autocomplete="off">
+            <button type="submit" class="btn btn-primary" style="border-radius:12px; padding:0 20px;" disabled>Send</button>
+          </form>
+        </div>
+        
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZm3g6Y2CVnzOCHxkcR9A8LmEbx9z3vlY",
+      authDomain: "professional-login-system.firebaseapp.com",
+      projectId: "professional-login-system",
+      appId: "1:702832950964:web:afec8b899fe4af62a7e1e1"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const APP_ID = firebase.app().options.appId;
+
+    // --- STATE ---
+    let currentUserId = null;
+    let activeStudentId = null;
+    let activeStudentName = null; 
+    let unsubscribeChat = null;
+    let unsubscribeUserStatus = null; 
+    let currentAdminStatus = 'available'; 
+    const userCache = {};
+    const notifications = [];
+    let dismissedNotifs = new Set(JSON.parse(localStorage.getItem('adminDismissedNotifs') || '[]'));
+    let allCounselorBookings = [];
+
+    // --- UI HELPERS ---
+    function showToast(msg, type='success') {
+      const c = document.body; // appended to body to ensure visibility
+      const t = document.createElement('div');
+      t.className = `toast-dynamic`;
+      t.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:${type==='success'?'var(--success)':'var(--danger)'}; color:white; padding:12px 24px; border-radius:30px; z-index:9999; font-weight:600; box-shadow:0 4px 15px rgba(0,0,0,0.2);`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(()=>{ t.style.opacity=0; setTimeout(()=>t.remove(),300); }, 3000);
+    }
+
+    // --- STATUS FEATURE ---
+    function updateStatusUI(status) {
+      const dot = document.getElementById('admin-status-dot');
+      const text = document.getElementById('admin-status-text');
+      const btn = document.getElementById('status-toggle-btn');
+      
+      currentAdminStatus = status;
+      dot.classList.remove('available', 'busy');
+      
+      if(status === 'available') {
+        dot.classList.add('available');
+        text.textContent = 'Available';
+        btn.innerHTML = `<span class="material-icons-round" style="font-size:14px;">busy</span> Busy`;
+      } else {
+        dot.classList.add('busy');
+        text.textContent = 'In Session';
+        btn.innerHTML = `<span class="material-icons-round" style="font-size:14px;">check</span> Available`;
+      }
+    }
+
+    async function toggleAdminStatus() {
+      if(!currentUserId) return;
+      const newStatus = currentAdminStatus === 'available' ? 'busy' : 'available';
+      updateStatusUI(newStatus);
+      try {
+        await db.collection('users').doc(currentUserId).update({ status: newStatus, lastStatusUpdate: firebase.firestore.FieldValue.serverTimestamp() });
+        showToast(newStatus === 'available' ? "You are now Available" : "Status set to In Session");
+      } catch (error) {
+        console.error("Error updating status:", error);
+        showToast("Failed to update status", "error");
+        updateStatusUI(currentAdminStatus === 'available' ? 'busy' : 'available'); 
+      }
+    }
+
+    // --- VIEW SWITCHING ---
+    window.switchView = function(viewName) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(`view-${viewName}`).classList.add('active');
+      
+      document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+      document.getElementById(`nav-${viewName}`).classList.add('active');
+
+      const titles = { 'dashboard': 'Dashboard', 'clients': 'Client Management' };
+      document.getElementById('header-title').textContent = titles[viewName];
+
+      if(window.innerWidth <= 1024) {
+        document.getElementById('sidebar').classList.remove('active');
+      }
+    }
+
+    // --- NOTIFICATION SYSTEM ---
+    function addNotification(title, message, bookingId, studentId) {
+      const exists = notifications.find(n => n.studentId === studentId && n.title === title && (Date.now() - n.time.getTime() < 2000));
+      if(exists) return;
+      if(dismissedNotifs.has(studentId + title)) return;
+
+      notifications.unshift({ id: Date.now(), title, message, bookingId, studentId, time: new Date(), read: false });
+      updateNotifBadge();
+      renderNotifications();
+    }
+
+    function updateNotifBadge() {
+      const unread = notifications.filter(n => !n.read).length;
+      const badge = document.getElementById('notif-badge');
+      badge.textContent = unread;
+      badge.classList.toggle('show', unread > 0);
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById('notif-list');
+      list.innerHTML = '';
+      if(notifications.length === 0) { list.innerHTML = '<div class="empty-state">No new notifications</div>'; return; }
+      
+      notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `notif-item ${n.read ? '' : 'unread'}`;
+        div.innerHTML = `<span class="title">${n.title}</span><span class="msg">${n.message}</span><span class="time">${n.time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
+        div.onclick = () => {
+          n.read = true;
+          updateNotifBadge();
+          renderNotifications();
+          document.getElementById('notif-panel').classList.remove('show');
+          if(n.studentId) {
+            switchView('clients');
+            getUserName(n.studentId).then(name => openChat(n.studentId, name));
+          }
+        };
+        list.appendChild(div);
+      });
+    }
+
+    function markAllRead() {
+      notifications.forEach(n => { n.read = true; if(n.studentId) dismissedNotifs.add(n.studentId + n.title); });
+      localStorage.setItem('adminDismissedNotifs', JSON.stringify([...dismissedNotifs]));
+      updateNotifBadge();
+      renderNotifications();
+    }
+
+    document.getElementById('notif-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notif-panel').classList.toggle('show'); });
+    window.addEventListener('click', () => document.getElementById('notif-panel').classList.remove('show'));
+
+    // --- DARK MODE ---
+    const t = document.getElementById('theme-toggle');
+    const applyTheme = (isDark) => {
+      document.body.classList.toggle('dark-mode', isDark);
+      const icon = t.querySelector('.material-icons-round');
+      icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+    };
+    t.addEventListener('click', () => {
+      const isDark = !document.body.classList.contains('dark-mode');
+      applyTheme(isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+    if(localStorage.getItem('theme') === 'dark') applyTheme(true);
+
+    // --- AUTH ---
+    auth.onAuthStateChanged(async user => {
+      if(!user) return window.location.href = '/Login/';
+      currentUserId = user.uid;
+      
+      const doc = await db.collection('users').doc(user.uid).get();
+      if(!doc.exists || doc.data().role !== 'admin') return window.location.href = 'client-dashboard.html';
+      
+      const userData = doc.data();
+      const name = userData.fullName || 'Admin';
+      document.getElementById('user-name').textContent = name;
+      document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+
+      const initialStatus = userData.status || 'available';
+      updateStatusUI(initialStatus);
+
+      if(unsubscribeUserStatus) unsubscribeUserStatus();
+      unsubscribeUserStatus = db.collection('users').doc(user.uid).onSnapshot(docSnap => {
+        if(docSnap.exists) {
+          const data = docSnap.data();
+          if(data.status && data.status !== currentAdminStatus) updateStatusUI(data.status);
+        }
+      });
+
+      loadBookings();
+    });
+
+    function logout() { if(unsubscribeUserStatus) unsubscribeUserStatus(); auth.signOut().then(() => window.location.href = '/Login/login.html'); }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+    
+    async function getUserName(uid) {
+      if(userCache[uid]) return userCache[uid];
+      const d = await db.collection('users').doc(uid).get();
+      const name = d.exists ? (d.data().fullName || 'Student') : 'Unknown';
+      userCache[uid] = name;
+      return name;
+    }
+
+    // --- BOOKING LOGIC ---
+    function loadBookings() {
+      const pendingCont = document.getElementById('pending-list');
+      const scheduleCont = document.getElementById('schedule-list');
+      const allCont = document.getElementById('all-clients-list');
+      const finishedCont = document.getElementById('finished-list');
+
+      db.collection('bookings').where('counselorId', '==', currentUserId).onSnapshot(async snapshot => {
+        allCounselorBookings = [];
+        snapshot.forEach(d => allCounselorBookings.push({id:d.id, ...d.data()}));
+        allCounselorBookings.sort((a,b) => a.date < b.date ? 1 : -1);
+
+        pendingCont.innerHTML = '';
+        scheduleCont.innerHTML = '';
+        allCont.innerHTML = '';
+        finishedCont.innerHTML = '';
+
+        snapshot.docChanges().forEach(change => {
+          if(change.type === 'added') {
+            const b = change.doc.data();
+            if(b.status === 'pending') {
+              getUserName(b.userId).then(n => addNotification('New Booking Request', `${n} wants to book ${b.date} at ${b.time}`, change.doc.id, b.userId));
+            }
+          }
+        });
+
+        let pCount = 0, cCount = 0;
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Map to ensure unique clients in the "All Clients" list
+        const uniqueClientsMap = new Map();
+
+        const getStatusBadge = (status) => {
+          let statusColor = status === 'pending' ? 'var(--warning)' : (status === 'confirmed' ? 'var(--success)' : 'var(--danger)');
+          let statusBg = status === 'pending' ? 'var(--warning-bg)' : (status === 'confirmed' ? 'var(--success-bg)' : 'var(--danger-bg)');
+          return `<span style="background:${statusBg}; color:${statusColor}; padding:4px 10px; border-radius:12px; font-size:10px; font-weight:700; text-transform:uppercase;">${status}</span>`;
+        };
+
+        const createSimpleClientRow = (userId, name) => {
+           const div = document.createElement('div');
+           div.className = 'booking-item clickable';
+           div.onclick = () => openChat(userId, name);
+           div.innerHTML = `
+              <div class="client-profile-block">
+                <div class="avatar" style="width:36px; height:36px; font-size:14px;">${name.charAt(0).toUpperCase()}</div>
+                <div class="client-text">
+                  <div style="font-weight:600; font-size:14px; line-height:1.2;">${name}</div>
+                </div>
+              </div>
+           `;
+           return div;
+        };
+
+        for(const b of allCounselorBookings) {
+          const name = await getUserName(b.userId);
+          
+          // 1. Pending List
+          if(b.status === 'pending') {
+            pCount++;
+            const div = document.createElement('div');
+            div.className = 'booking-item';
+            div.innerHTML = `
+              <div class="booking-info"><h4>${name}</h4><div class="booking-meta"><span class="material-icons-round" style="font-size:14px">calendar_today</span> ${b.date} <span class="material-icons-round" style="font-size:14px">schedule</span> ${b.time}</div></div>
+              <div class="booking-actions">
+                <button class="btn btn-sm btn-accept" onclick="updateStatus('${b.id}','confirmed')"><span class="material-icons-round" style="font-size:16px">check</span></button>
+                <button class="btn btn-sm btn-decline" onclick="updateStatus('${b.id}','declined')"><span class="material-icons-round" style="font-size:16px">close</span></button>
+                <button class="btn btn-sm btn-chat" onclick="openChat('${b.userId}','${name}')"><span class="material-icons-round" style="font-size:16px">chat</span></button>
+              </div>`;
+            pendingCont.appendChild(div);
+          } 
+          
+          // 2. Schedule List
+          else if (b.status === 'confirmed' && b.date >= today) {
+            cCount++;
+            const div = document.createElement('div');
+            div.className = 'booking-item';
+            div.innerHTML = `
+              <div class="booking-info"><h4>${name}</h4><div class="booking-meta"><span class="material-icons-round" style="font-size:14px">calendar_today</span> ${b.date} <span class="material-icons-round" style="font-size:14px">schedule</span> ${b.time}</div></div>
+              <div class="booking-actions"><button class="btn btn-sm btn-chat" onclick="openChat('${b.userId}','${name}')">Message</button></div>`;
+            scheduleCont.appendChild(div);
+          }
+
+          // 3. Logic for Unique Client List (Messaging)
+          // Only add if status is confirmed OR you want all statuses. 
+          // Here we add confirmed users to chat list uniquely.
+          if (b.status === 'confirmed') {
+             if (!uniqueClientsMap.has(b.userId)) {
+                 uniqueClientsMap.set(b.userId, name);
+             }
+          }
+
+          // 4. Finished List
+          if (b.status === 'declined' || (b.status === 'confirmed' && b.date < today)) {
+             finishedCont.appendChild(createSimpleClientRow(b.userId, name));
+          }
+        }
+
+        // Render Unique Client List
+        uniqueClientsMap.forEach((name, id) => {
+            allCont.appendChild(createSimpleClientRow(id, name));
+        });
+
+        if(pCount===0) pendingCont.innerHTML = '<div class="empty-state">No pending requests.</div>';
+        if(cCount===0) scheduleCont.innerHTML = '<div class="empty-state">No upcoming sessions.</div>';
+        if(uniqueClientsMap.size===0) allCont.innerHTML = '<div class="empty-state">No confirmed clients to message.</div>';
+        if(finishedCont.children.length === 0) finishedCont.innerHTML = '<div class="empty-state">No finished history yet.</div>';
+
+        document.getElementById('stat-pending').textContent = pCount;
+        document.getElementById('stat-confirmed').textContent = cCount;
+        document.getElementById('stat-total').textContent = allCounselorBookings.length;
+      });
+    }
+
+    async function updateStatus(id, status) {
+      const doc = await db.collection('bookings').doc(id).get();
+      if (!doc.exists) { showToast("Error: Booking not found", "error"); return; }
+      
+      const bookingData = doc.data();
+      const targetUserId = bookingData.userId;
+
+      if (status === 'confirmed') {
+        const existingConfirmed = allCounselorBookings.find(b => b.userId === targetUserId && b.status === 'confirmed' && b.id !== id);
+        if (existingConfirmed) {
+          const clientName = await getUserName(targetUserId);
+          showToast(`${clientName} already has an active booking.`, "error");
+          return;
+        }
+      }
+
+      try {
+        await db.collection('bookings').doc(id).update({ status: status });
+        showToast(`Booking ${status.toUpperCase()}`);
+      } catch (error) {
+        showToast("Error updating status", "error");
+      }
+    }
+
+    // --- CHAT LOGIC ---
+    function getChatId(u1, u2) { return [u1,u2].sort().join('_'); }
+    function getChatRef(id) { return db.collection(`artifacts/${APP_ID}/public/data/chats`).doc(id).collection('messages'); }
+
+    window.openChat = async(sid, sName) => {
+      activeStudentId = sid;
+      activeStudentName = sName;
+      
+      // Mobile Slide Logic
+      document.getElementById('chat-container').classList.add('chat-active');
+      
+      document.getElementById('chat-partner-name').textContent = sName;
+      document.getElementById('chat-status').textContent = 'Active';
+      document.getElementById('chat-status').style.color = 'var(--success)';
+      document.getElementById('chat-avatar').textContent = sName.charAt(0).toUpperCase();
+      document.getElementById('message-input').disabled = false;
+      document.querySelector('#chat-form button').disabled = false;
+
+      const cid = getChatId(currentUserId, sid);
+      if(unsubscribeChat) unsubscribeChat();
+
+      let isFirstSnapshot = true;
+      unsubscribeChat = getChatRef(cid).orderBy('timestamp','asc').onSnapshot(snap => {
+        const c = document.getElementById('chat-messages');
+        c.innerHTML = '';
+        snap.forEach(d => {
+          const m = d.data();
+          const div = document.createElement('div');
+          div.className = `message ${m.senderId===currentUserId?'sent':'received'}`;
+          div.textContent = m.text;
+          c.appendChild(div);
+        });
+        c.scrollTop = c.scrollHeight;
+
+        if (!isFirstSnapshot) {
+          snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+              const msg = change.doc.data();
+              if (msg.senderId !== currentUserId) {
+                if (document.hidden || !document.getElementById('view-clients').classList.contains('active')) {
+                  const shortText = msg.text.length > 35 ? msg.text.substring(0, 35) + '...' : msg.text;
+                  addNotification('New Message', `${sName}: ${shortText}`, null, sid);
+                }
+              }
+            }
+          });
+        } else {
+          isFirstSnapshot = false;
+        }
+      });
+    };
+
+    // Close Chat on Mobile
+    function closeChat() {
+       document.getElementById('chat-container').classList.remove('chat-active');
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const txt = document.getElementById('message-input').value.trim();
+      if(!txt || !activeStudentId) return;
+      await getChatRef(getChatId(currentUserId, activeStudentId)).add({
+        senderId: currentUserId, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById('message-input').value = '';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CalmBook | Student Portal</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <style>
+    :root {
+      /* CalmBook Theme */
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #a855f7;
+      --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+      --glass-bg: rgba(255, 255, 255, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-light: rgba(255, 255, 255, 0.3);
+      
+      /* Status Colors */
+      --success: #10B981;
+      --success-bg: #ECFDF5;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --info: #3B82F6;
+      --info-bg: #EFF6FF;
+      
+      --radius-md: 14px;
+      --radius-lg: 24px;
+      --sidebar-width: 280px;
+      --header-height: 70px;
+    }
+
+    /* Dark Mode Variables */
+    body.dark-mode {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      --glass-bg: rgba(30, 41, 59, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success-bg: rgba(16, 185, 129, 0.1);
+      --info-bg: rgba(59, 130, 246, 0.1);
+    }
+
+    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* --- SIDEBAR --- */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(to bottom, rgba(99, 102, 241, 0.95), rgba(168, 85, 247, 0.95));
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+
+    .sidebar-close-btn {
+      display: none;
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: #fff;
+      position: relative;
+      z-index: 2;
+    }
+    .brand h1{ font-size: 30px; }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .nav-links { list-style: none; padding: 0; margin: 0; flex: 1; position: relative; z-index: 2; }
+    .nav-item { margin-bottom: 8px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      border-radius: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+    .nav-link.active {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .nav-link .material-icons-round { font-size: 22px; }
+
+    .user-profile {
+      display: flex; align-items: center; gap: 14px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      position: relative; z-index: 2;
+    }
+    .avatar {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #fff, #e0e7ff);
+      color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+      flex-shrink: 0;
+    }
+    .logout-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: 0.2s;
+      margin-left: auto;
+    }
+    .logout-btn:hover { background: rgba(239, 68, 68, 0.3); border-color: rgba(239,68,68,0.5); }
+
+    /* --- MAIN CONTENT --- */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-width: 0; }
+
+    /* Header */
+    header {
+      height: var(--header-height);
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-main); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .icon-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: 0.2s;
+      position: relative;
+    }
+    .icon-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--info-bg); }
+
+    /* Notification Badge */
+    .badge {
+      position: absolute; top: -4px; right: -4px;
+      background: var(--danger); color: white;
+      font-size: 10px; font-weight: 700;
+      height: 18px; min-width: 18px; padding: 0 4px;
+      border-radius: 10px;
+      display: none; align-items: center; justify-content: center;
+      border: 2px solid var(--glass-bg);
+      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .badge.show { display: flex; }
+    @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+    /* Notification Panel */
+    .notif-panel {
+      position: fixed; top: 80px; right: 32px; width: 340px; max-height: 450px;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      z-index: 200; display: none; flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+    .notif-panel.show { display: flex; animation: slideDown 0.2s ease-out; }
+    .notif-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--glass-border);
+      font-weight: 700; display: flex; justify-content: space-between; font-size: 15px;
+    }
+    .notif-list { overflow-y: auto; flex: 1; }
+    .notif-item {
+      padding: 14px 20px; border-bottom: 1px solid var(--glass-border);
+      cursor: pointer; transition: 0.2s;
+    }
+    .notif-item:hover { background: var(--info-bg); }
+    .notif-item.unread { background: var(--info-bg); border-left: 3px solid var(--primary); }
+    .notif-item .title { font-weight: 600; font-size: 14px; margin-bottom: 2px; display: block;}
+    .notif-item .msg { font-size: 13px; color: var(--text-muted); display: block; }
+    .notif-item .time { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;}
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- VIEWS --- */
+    .view-section { display: none; height: 100%; flex-direction: column; }
+    .view-section.active { display: flex; animation: fadeIn 0.4s ease; }
+
+    .content-scroll { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; }
+    .counselor-info { display: flex; width: 100%; align-items: center; gap: 20px; }
+    
+    /* --- GRID LAYOUTS --- */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+    
+    @media (max-width: 1000px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    /* --- GLASS CARD --- */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border);
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column;
+    }
+    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+    /* Form Elements */
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+    input, select {
+      width: 100%; padding: 12px 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.5);
+      font-size: 14px; font-weight: 500; transition: 0.2s; font-family: inherit;
+      color: var(--text-main);
+    }
+    /* Dark mode inputs */
+    body.dark-mode input, body.dark-mode select { background: rgba(30, 41, 59, 0.6); border-color: rgba(255,255,255,0.1); color: #fff; }
+    
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    
+    .btn {
+      padding: 12px 24px; border: none; border-radius: 12px;
+      font-weight: 600; cursor: pointer; transition: 0.2s;
+      font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); }
+    .btn-outline { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-main); }
+    .btn-outline:hover { background: var(--info-bg); }
+
+    /* Session Items */
+    .session-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+    .session-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px; border-radius: 14px;
+      background: rgba(255,255,255,0.5);
+      border: 1px solid var(--glass-border);
+      transition: 0.2s;
+    }
+    body.dark-mode .session-item { background: rgba(30, 41, 59, 0.6); }
+    
+    .session-item:hover { background: #fff; transform: translateY(-1px); }
+    body.dark-mode .session-item:hover { background: rgba(30, 41, 59, 0.9); }
+    
+    .status-badge { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 20px; text-transform: uppercase; }
+    .status-confirmed { background: var(--success-bg); color: var(--success); }
+    .status-pending { background: #FFFBEB; color: var(--warning); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-dot.available { background: var(--success); }
+    .status-dot.busy { background: var(--danger); }
+
+    /* --- CHAT --- */
+    .chat-container { display: grid; grid-template-columns: 320px 1fr; height: 100%; background: var(--glass-bg); border-radius: 0; overflow: hidden; }
+    .counselor-pane { border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; background: var(--glass-bg); }
+    .chat-pane { display: flex; flex-direction: column; background: var(--bg-gradient); }
+    
+    .chat-header {
+      padding: 16px 24px; border-bottom: 1px solid var(--glass-border);
+      display: flex; align-items: center; gap: 12px;
+      background: var(--glass-bg); flex-shrink: 0;
+    }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+    .message {
+      max-width: 70%; padding: 12px 18px; border-radius: 18px;
+      font-size: 14px; line-height: 1.5; word-wrap: break-word;
+    }
+    .message.sent { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+    .message.received { align-self: flex-start; background: var(--glass-bg); border: 1px solid var(--glass-border); border-bottom-left-radius: 4px; }
+    
+    .chat-input-area { padding: 16px 24px; border-top: 1px solid var(--glass-border); background: var(--glass-bg); display: flex; gap: 12px; flex-shrink: 0; }
+    .chat-input { flex: 1; border-radius: 24px; padding-left: 20px; background: var(--bg-body); border: none; }
+
+    /* --- GAMES UI --- */
+    .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; width: 100%; max-width: 1400px; margin: 0 auto; }
+    
+    .game-card {
+      background: var(--glass-bg); border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border);
+      display: flex; flex-direction: column; height: 480px; overflow: hidden;
+    }
+    .game-header {
+      padding: 16px 24px; border-bottom: 1px solid var(--glass-border);
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--glass-bg); flex-shrink: 0;
+    }
+    .game-title { font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--primary); }
+    .game-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow: hidden; position: relative; }
+    
+    /* Snake */
+    #snake-canvas { background: #1e293b; border-radius: 12px; box-shadow: 0 0 0 4px rgba(255,255,255,0.1); touch-action: none; }
+    .snake-controls { display: none; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 20px; }
+    .control-btn { width: 50px; height: 50px; border-radius: 12px; border: none; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .control-btn:active { transform: scale(0.95); }
+    @media (max-width: 768px) { .snake-controls { display: grid; } }
+    
+    /* Word Search */
+    .ws-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: var(--text-muted); padding: 2px; border-radius: 12px; pointer-events: all; }
+    .ws-cell { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: var(--glass-bg); font-weight: 700; font-size: 14px; color: var(--text-main); cursor: pointer; user-select: none; border-radius: 2px; }
+    .ws-cell.selected { background: var(--primary); color: white; }
+    .ws-cell.found { background: var(--success); color: white; }
+    .ws-words { margin-top: 16px; text-align: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .ws-word-item { padding: 4px 10px; background: var(--glass-bg); border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--glass-border); }
+    .ws-word-item.found { text-decoration: line-through; opacity: 0.5; }
+
+    /* Crossword */
+    .cw-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 250px; }
+    .cw-cell { width: 100%; aspect-ratio: 1; text-align: center; font-weight: 700; font-size: 18px; border: 1px solid #cbd5e1; border-radius: 4px; text-transform: uppercase; background: var(--glass-bg); color: var(--text-main); }
+    .cw-cell:focus { border-color: var(--primary); background: var(--info-bg); }
+    .cw-cell.blocked { background: #1e293b; border: none; pointer-events: none; }
+    .cw-clues { margin-top: 16px; font-size: 13px; color: var(--text-muted); text-align: left; width: 100%; padding: 0 10px; }
+    .cw-clues p { margin: 4px 0; }
+
+    /* --- MOBILE RESPONSIVE --- */
+    .mobile-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
+    
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; left: -100%; height: 100%; width: 280px; box-shadow: var(--shadow-glass); }
+      .sidebar.active { left: 0; }
+      .sidebar-close-btn { display: flex; align-items: center; justify-content: center; }
+      .mobile-toggle { display: block; }
+      header { padding: 0 16px; }
+      .content-scroll { padding: 16px; }
+      .glass-card { padding: 20px; }
+      
+      /* Chat Mobile Layout */
+      .chat-container { display: block; position: relative; height: 100%; }
+      .counselor-pane { position: absolute; width: 100%; height: 100%; z-index: 10; left: 0; top: 0; transition: transform 0.3s; transform: translateX(0); }
+      .chat-pane { position: absolute; width: 100%; height: 100%; z-index: 20; left: 0; top: 0; transform: translateX(100%); transition: transform 0.3s; }
+      .chat-container.chat-active .counselor-pane { transform: translateX(-100%); }
+      .chat-container.chat-active .chat-pane { transform: translateX(0); }
+
+      .games-grid { grid-template-columns: 1fr; }
+      .game-card { height: auto; min-height: 450px; }
+      
+      .notif-panel { right: 16px; width: calc(100% - 32px); }
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close-btn" onclick="toggleSidebar()">
+      <span class="material-icons-round">close</span>
+    </button>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      </div>
+      <h1>CalmBook</h1>
+    </div>
+    
+    <ul class="nav-links">
+      <li class="nav-item"><a class="nav-link active" id="nav-dashboard" onclick="switchView('dashboard')"><span class="material-icons-round">dashboard</span> Dashboard</a></li>
+      <li class="nav-item"><a class="nav-link" id="nav-messages" onclick="switchView('messages')"><span class="material-icons-round">chat_bubble</span> Messages</a></li>
+      <li class="nav-item"><a class="nav-link" id="nav-games" onclick="switchView('games')"><span class="material-icons-round">sports_esports</span> Fun Zone</a></li>
+    </ul>
+
+    <div class="user-profile">
+      <div class="avatar" id="user-avatar">U</div>
+      <div style="flex:1; overflow:hidden;">
+        <div id="user-name" style="font-weight:700; font-size:14px;">User</div>
+        <div id="user-role" style="font-size:12px; opacity:0.8;">Student</div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Logout"><span class="material-icons-round" style="font-size: 20px;">logout</span></button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <!-- Header -->
+    <header>
+      <div class="header-left">
+        <button class="mobile-toggle" onclick="toggleSidebar()"><span class="material-icons-round">menu</span></button>
+        <h2 class="page-title" id="header-title">Dashboard</h2>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+          <span class="material-icons-round">dark_mode</span>
+        </button>
+        <button class="icon-btn" id="notif-btn">
+          <span class="material-icons-round">notifications</span>
+          <div class="badge" id="notif-badge">0</div>
+        </button>
+      </div>
+    </header>
+
+    <!-- Notification Panel -->
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-header">
+        Notifications
+        <span style="font-size:11px; color:var(--primary); cursor:pointer;" onclick="markAllRead()">Mark all read</span>
+      </div>
+      <div class="notif-list" id="notif-list">
+        <div style="text-align:center; padding:20px; color:var(--text-muted);">No notifications yet</div>
+      </div>
+    </div>
+
+    <!-- VIEW: DASHBOARD -->
+    <div id="view-dashboard" class="view-section active">
+      <div class="content-scroll">
+        <div class="dashboard-grid">
+          <div class="glass-card">
+            <div class="card-title"><span class="material-icons-round">event_available</span> Book Session</div>
+            <form id="booking-form" onsubmit="return handleBooking(event)">
+              <div class="form-group">
+                <label>Counselor</label>
+                <select id="counselor-select" required></select>
+                <div id="counselor-status-display" style="margin-top:8px; font-size:12px; display:flex; align-items:center; gap:6px;"></div>
+              </div>
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="date-input" required>
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="time-input" required>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%">Request Session</button>
+            </form>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-title"><span class="material-icons-round">upcoming</span> My Sessions</div>
+            <div class="session-list" id="upcoming-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: MESSAGES -->
+    <div id="view-messages" class="view-section">
+      <div class="chat-container" id="chat-container">
+        <div class="counselor-pane">
+          <div class="chat-header" style="border:none; background:transparent;"><h3 style="font-size:18px;">Contacts</h3></div>
+          <div id="counselor-list" class="session-list" style="padding:0 10px 20px;"></div>
+        </div>
+
+        <div class="chat-pane">
+          <div class="chat-header">
+            <button class="mobile-toggle" onclick="closeChat()"><span class="material-icons-round">arrow_back</span></button>
+            <div class="avatar" id="chat-avatar">?</div>
+            <div>
+              <h4 style="margin:0; font-size:16px;" id="chat-partner-name">Select Chat</h4>
+              <p style="margin:0; font-size:12px; color:var(--text-muted);" id="chat-status">Online</p>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div style="text-align:center; margin:auto; color:var(--text-muted);">Select a contact to start chatting.</div>
+          </div>
+          <form class="chat-input-area" id="chat-form" onsubmit="return handleChatSubmit(event)">
+            <input type="text" class="chat-input" id="message-input" placeholder="Type message..." disabled>
+            <button type="submit" class="btn btn-primary" style="border-radius:12px; padding:0 20px;" disabled>Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: GAMES -->
+    <div id="view-games" class="view-section">
+      <div class="content-scroll">
+        <div class="games-grid">
+          
+          <!-- SNAKE GAME -->
+          <div class="game-card">
+            <div class="game-header">
+              <div class="game-title"><span class="material-icons-round">sports_kabaddi</span> Snake Game</div>
+              <button class="btn btn-outline" style="padding:6px 12px;" onclick="resetSnake()">Restart</button>
+            </div>
+            <div class="game-body">
+              <div style="position:relative;">
+                <canvas id="snake-canvas" width="280" height="280"></canvas>
+                <div style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); color:white; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">Score: <span id="snake-score">0</span></div>
+              </div>
+              <div class="snake-controls">
+                 <div></div><button class="control-btn" onclick="setDirection('up')"><span class="material-icons-round">keyboard_arrow_up</span></button><div></div>
+                 <button class="control-btn" onclick="setDirection('left')"><span class="material-icons-round">keyboard_arrow_left</span></button>
+                 <button class="control-btn" onclick="setDirection('down')"><span class="material-icons-round">keyboard_arrow_down</span></button>
+                 <button class="control-btn" onclick="setDirection('right')"><span class="material-icons-round">keyboard_arrow_right</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- WORD SEARCH -->
+          <div class="game-card">
+            <div class="game-header">
+              <div class="game-title"><span class="material-icons-round">search</span> Word Hunt</div>
+              <button class="btn btn-outline" style="padding:6px 12px;" onclick="initWordSearch()">New Game</button>
+            </div>
+            <div class="game-body" id="ws-game-area"></div>
+          </div>
+
+          <!-- CROSSWORD -->
+          <div class="game-card">
+            <div class="game-header">
+              <div class="game-title"><span class="material-icons-round">extension</span> Mini Crossword</div>
+              <button class="btn btn-outline" style="padding:6px 12px;" onclick="checkCrossword()">Check</button>
+            </div>
+            <div class="game-body" id="cw-game-area"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- CONFIGURATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCZm3g6Y2CVnzOCHxkcR9A8LmEbx9z3vlY",
+      authDomain: "professional-login-system.firebaseapp.com",
+      projectId: "professional-login-system",
+      appId: "1:702832950964:web:afec8b899fe4af62a7e1e1"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const APP_ID = firebase.app().options.appId;
+
+    // --- STATE ---
+    let currentUserId = null;
+    let activeChatId = null;
+    let unsubscribeChat = null;
+    const counselorCache = {};
+    const counselorStatusCache = {};
+    
+    // Notification State
+    const notifications = [];
+    let dismissedNotifs = new Set(JSON.parse(localStorage.getItem('studentDismissedNotifs') || '[]'));
+
+    // --- UI HELPERS ---
+    function showToast(message, type = 'success') {
+      const existing = document.querySelector('.toast-dynamic');
+      if(existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = `toast-dynamic`;
+      toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:${type==='success'?'var(--success)':'var(--danger)'}; color:white; padding:12px 24px; border-radius:30px; z-index:9999; font-weight:600; box-shadow:0 4px 15px rgba(0,0,0,0.2); animation: fadeIn 0.3s;`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(()=>toast.remove(), 300);
+      }, 3000);
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+    // --- NOTIFICATION SYSTEM ---
+    function addNotification(title, message, type, id) {
+      if(dismissedNotifs.has(id)) return;
+      // Check if exists
+      if(notifications.find(n => n.id === id)) return;
+      
+      notifications.unshift({ id, title, message, type, time: new Date(), read: false });
+      updateNotifBadge();
+      renderNotifications();
+    }
+
+    function updateNotifBadge() {
+      const unread = notifications.filter(n => !n.read).length;
+      const badge = document.getElementById('notif-badge');
+      badge.textContent = unread;
+      badge.classList.toggle('show', unread > 0);
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById('notif-list');
+      list.innerHTML = '';
+      if(notifications.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No notifications</div>';
+        return;
+      }
+      notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `notif-item ${n.read ? '' : 'unread'}`;
+        div.innerHTML = `
+          <span class="title">${n.title}</span>
+          <span class="msg">${n.message}</span>
+          <span class="time">${n.time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        `;
+        div.onclick = () => {
+          n.read = true;
+          dismissedNotifs.add(n.id);
+          localStorage.setItem('studentDismissedNotifs', JSON.stringify([...dismissedNotifs]));
+          updateNotifBadge();
+          renderNotifications();
+          
+          // Action
+          if(n.type === 'booking') switchView('dashboard');
+          if(n.type === 'chat') switchView('messages');
+        };
+        list.appendChild(div);
+      });
+    }
+
+    function markAllRead() {
+      notifications.forEach(n => {
+        n.read = true;
+        dismissedNotifs.add(n.id);
+      });
+      localStorage.setItem('studentDismissedNotifs', JSON.stringify([...dismissedNotifs]));
+      updateNotifBadge();
+      renderNotifications();
+    }
+
+    // Toggle Panel
+    document.getElementById('notif-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('notif-panel').classList.toggle('show');
+    });
+    window.addEventListener('click', () => document.getElementById('notif-panel').classList.remove('show'));
+
+    // --- DARK MODE ---
+    const themeToggle = document.getElementById('theme-toggle');
+    const applyTheme = (isDark) => {
+      document.body.classList.toggle('dark-mode', isDark);
+      const icon = themeToggle.querySelector('.material-icons-round');
+      icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+    };
+    
+    themeToggle.addEventListener('click', () => {
+      const isDark = !document.body.classList.contains('dark-mode');
+      applyTheme(isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Init Theme
+    if(localStorage.getItem('theme') === 'dark') applyTheme(true);
+
+    // --- VIEW SWITCHING ---
+    function switchView(viewName) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(`view-${viewName}`).classList.add('active');
+      
+      document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+      document.getElementById(`nav-${viewName}`).classList.add('active');
+
+      const titles = { 'dashboard': 'Dashboard', 'messages': 'Messages', 'games': 'Fun Zone' };
+      document.getElementById('header-title').textContent = titles[viewName];
+
+      if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+      
+      if(viewName === 'games') {
+        if(!window.snakeInterval) startSnakeLogic();
+        initWordSearch();
+        initCrossword();
+      }
+    }
+    
+    // --- AUTH ---
+    auth.onAuthStateChanged(async user => {
+      if (!user) { window.location.href = '/Login/'; return; }
+      currentUserId = user.uid;
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) { auth.signOut(); return; }
+      
+      const userData = userDoc.data();
+      if (userData.role === 'admin') { window.location.href = 'admin-dashboard.html'; return; }
+
+      const displayName = userData.fullName || userData.email || 'User';
+      document.getElementById('user-name').textContent = displayName;
+      document.getElementById('user-avatar').textContent = displayName.charAt(0).toUpperCase();
+
+      loadCounselors();
+      loadBookings();
+      document.getElementById('date-input').min = new Date().toISOString().split('T')[0];
+    });
+
+    function logout() { auth.signOut().then(() => window.location.href = '/Login/login.html'); }
+
+    // --- DATA LOGIC ---
+    async function loadCounselors() {
+      const select = document.getElementById('counselor-select');
+      select.innerHTML = '<option value="" disabled selected>Loading...</option>';
+      try {
+        const snapshot = await db.collection('users').where('role', '==', 'admin').get();
+        select.innerHTML = '<option value="" disabled selected>Select Counselor</option>';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          counselorCache[doc.id] = data.fullName || data.email;
+          counselorStatusCache[doc.id] = data.status || 'available';
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = counselorCache[doc.id];
+          select.appendChild(opt);
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    document.getElementById('counselor-select').addEventListener('change', (e) => {
+      const id = e.target.value;
+      const status = counselorStatusCache[id];
+      const display = document.getElementById('counselor-status-display');
+      if(status === 'available') display.innerHTML = '<span class="status-dot available"></span> <span style="color:var(--success)">Available</span>';
+      else display.innerHTML = '<span class="status-dot busy"></span> <span style="color:var(--danger)">In Session</span>';
+    });
+
+    function loadBookings() {
+      const listContainer = document.getElementById('upcoming-list');
+      const counselorList = document.getElementById('counselor-list');
+      
+      db.collection('bookings').where('userId', '==', currentUserId).onSnapshot(snapshot => {
+        const docs = []; 
+        snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+        docs.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+        listContainer.innerHTML = '';
+        counselorList.innerHTML = '';
+
+        if (docs.length === 0) listContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No sessions found.</div>';
+
+        // Check for changes for notifications
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'modified' || change.type === 'added') {
+            const data = change.doc.data();
+            const name = counselorCache[data.counselorId] || 'Counselor';
+            
+            // Only notify on modification (status change)
+            if(change.type === 'modified') {
+              if(data.status === 'confirmed') {
+                 addNotification('Session Confirmed', `Your session with ${name} on ${data.date} is confirmed!`, 'booking', change.doc.id);
+              } else if(data.status === 'declined') {
+                 addNotification('Session Declined', `Your session with ${name} was declined.`, 'booking', change.doc.id);
+              }
+            }
+          }
+        });
+
+        docs.forEach(item => {
+          const name = counselorCache[item.counselorId] || 'Counselor';
+          const sClass = item.status === 'confirmed' ? 'status-confirmed' : (item.status === 'pending' ? 'status-pending' : 'status-declined');
+          
+          // Dashboard Item
+          const div = document.createElement('div');
+          div.className = 'session-item';
+          div.innerHTML = `<div><h4 style="margin:0 0 4px; font-size:15px;">${item.date} at ${item.time}</h4><p style="margin:0; font-size:13px; color:var(--text-muted);">with ${name}</p></div><div style="text-align:right"><span class="status-badge ${sClass}">${item.status}</span>${item.status === 'confirmed' ? `<br><button class="btn btn-outline" style="margin-top:6px; font-size:11px; padding:4px 10px;" onclick="startChat('${item.counselorId}', '${name}')">Message</button>` : ''}</div>`;
+          listContainer.appendChild(div);
+
+          // Chat Item
+          if(item.status === 'confirmed') {
+            const cDiv = document.createElement('div');
+            cDiv.className = 'session-item';
+            cDiv.onclick = () => startChat(item.counselorId, name);
+            cDiv.innerHTML = `<div class="counselor-info"><div class="avatar">${name.charAt(0)}</div><div><div style="font-weight:600;">${name}</div><div style="font-size:11px; width:100%; color:var(--text-muted);">Counselor</div></div></div>`;
+            counselorList.appendChild(cDiv);
+          }
+        });
+      });
+    }
+
+    function handleBooking(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.innerHTML = 'Booking...';
+      btn.disabled = true;
+      db.collection('bookings').add({
+        userId: currentUserId,
+        counselorId: document.getElementById('counselor-select').value,
+        date: document.getElementById('date-input').value,
+        time: document.getElementById('time-input').value,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        showToast('Booking request sent!');
+        e.target.reset();
+        document.getElementById('counselor-status-display').innerHTML = '';
+      }).catch(err => showToast('Error', 'error'))
+      .finally(() => { btn.innerHTML = 'Request Session'; btn.disabled = false; });
+      return false;
+    }
+
+    // --- CHAT SYSTEM ---
+    function getChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
+    function getMessagesRef(chatId) { return db.collection(`artifacts/${APP_ID}/public/data/chats`).doc(chatId).collection('messages'); }
+
+    function startChat(counselorId, name) {
+      activeChatId = counselorId;
+      switchView('messages');
+      
+      document.getElementById('chat-container').classList.add('chat-active');
+      
+      document.getElementById('chat-partner-name').textContent = name;
+      document.getElementById('chat-avatar').textContent = name.charAt(0);
+      document.getElementById('message-input').disabled = false;
+      document.getElementById('chat-form').querySelector('button').disabled = false;
+      
+      const chatId = getChatId(currentUserId, counselorId);
+      if (unsubscribeChat) unsubscribeChat();
+
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '<div style="text-align:center; margin:auto;">Loading...</div>';
+
+      unsubscribeChat = getMessagesRef(chatId).orderBy('timestamp', 'asc').onSnapshot(snap => {
+        container.innerHTML = '';
+        if(snap.empty) container.innerHTML = '<div style="text-align:center; margin:auto; color:var(--text-muted);">Say hello!</div>';
+        
+        // Chat Notification Logic
+        snap.docChanges().forEach(change => {
+          if(change.type === 'added') {
+            const msg = change.doc.data();
+            // If message is not from me, and view is not messages OR window is hidden
+            if(msg.senderId !== currentUserId) {
+               if(document.hidden || !document.getElementById('view-messages').classList.contains('active')) {
+                 const txt = msg.text.substring(0, 30);
+                 addNotification('New Message', `${name}: ${txt}...`, 'chat', change.doc.id);
+               }
+            }
+          }
+        });
+
+        snap.forEach(doc => {
+          const msg = doc.data();
+          const div = document.createElement('div');
+          div.className = `message ${msg.senderId === currentUserId ? 'sent' : 'received'}`;
+          div.textContent = msg.text;
+          container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    function closeChat() {
+      document.getElementById('chat-container').classList.remove('chat-active');
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!activeChatId || !text) return;
+      const chatId = getChatId(currentUserId, activeChatId);
+      getMessagesRef(chatId).add({ senderId: currentUserId, text, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+      input.value = '';
+      return false;
+    }
+
+    // ==========================================
+    // === GAMES LOGIC ===
+    // ==========================================
+
+    // 1. SNAKE GAME
+    let snake = [], food = {}, dir = {x:1,y:0}, nextDir = {x:1,y:0}, score = 0;
+    const gridSize = 14; 
+    const tileSize = 20;
+
+    function startSnakeLogic() {
+      const canvas = document.getElementById('snake-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      resetSnake();
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowUp' && dir.y === 0) nextDir = {x:0, y:-1};
+        else if (e.key === 'ArrowDown' && dir.y === 0) nextDir = {x:0, y:1};
+        else if (e.key === 'ArrowLeft' && dir.x === 0) nextDir = {x:-1, y:0};
+        else if (e.key === 'ArrowRight' && dir.x === 0) nextDir = {x:1, y:0};
+      });
+      
+      let touchStartX = 0, touchStartY = 0;
+      canvas.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; e.preventDefault(); }, {passive: false});
+      canvas.addEventListener('touchend', e => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0 && dir.x === 0) nextDir = {x:1, y:0};
+            else if (dx < 0 && dir.x === 0) nextDir = {x:-1, y:0};
+        } else {
+            if (dy > 0 && dir.y === 0) nextDir = {x:0, y:1};
+            else if (dy < 0 && dir.y === 0) nextDir = {x:0, y:-1};
+        }
+        e.preventDefault();
+      }, {passive: false});
+    }
+
+    function resetSnake() {
+      if(window.snakeInterval) clearInterval(window.snakeInterval);
+      snake = [{x:7, y:7}];
+      dir = {x:1,y:0};
+      nextDir = {x:1,y:0};
+      score = 0;
+      document.getElementById('snake-score').innerText = score;
+      placeFood();
+      
+      window.snakeInterval = setInterval(gameLoop, 130);
+    }
+
+    function gameLoop() {
+      dir = nextDir;
+      const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+      
+      if (head.x < 0) head.x = gridSize - 1;
+      if (head.x >= gridSize) head.x = 0;
+      if (head.y < 0) head.y = gridSize - 1;
+      if (head.y >= gridSize) head.y = 0;
+      
+      for (let s of snake) {
+        if (s.x === head.x && s.y === head.y) {
+          clearInterval(window.snakeInterval);
+          showToast('Game Over! Score: ' + score, 'error');
+          return;
+        }
+      }
+
+      snake.unshift(head);
+      
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        document.getElementById('snake-score').innerText = score;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+      
+      drawSnake();
+    }
+
+    function drawSnake() {
+      const ctx = document.getElementById('snake-canvas').getContext('2d');
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(0, 0, 280, 280);
+      
+      ctx.strokeStyle = "#334155";
+      for(let i=0; i<=gridSize; i++) {
+        ctx.beginPath(); ctx.moveTo(i*tileSize, 0); ctx.lineTo(i*tileSize, 280); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i*tileSize); ctx.lineTo(280, i*tileSize); ctx.stroke();
+      }
+
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(food.x*tileSize+2, food.y*tileSize+2, tileSize-4, tileSize-4);
+      
+      snake.forEach((s, i) => {
+        ctx.fillStyle = i === 0 ? "#fff" : "#6366f1";
+        ctx.fillRect(s.x*tileSize+1, s.y*tileSize+1, tileSize-2, tileSize-2);
+      });
+    }
+
+    function placeFood() {
+      food = { x: Math.floor(Math.random()*gridSize), y: Math.floor(Math.random()*gridSize) };
+      for(let s of snake) if(s.x === food.x && s.y === food.y) placeFood();
+    }
+
+    window.setDirection = (d) => {
+      if (d === 'up' && dir.y === 0) nextDir = {x:0, y:-1};
+      else if (d === 'down' && dir.y === 0) nextDir = {x:0, y:1};
+      else if (d === 'left' && dir.x === 0) nextDir = {x:-1, y:0};
+      else if (d === 'right' && dir.x === 0) nextDir = {x:1, y:0};
+    };
+
+    // 2. WORD SEARCH
+    const wordsToFind = ["CALM", "PEACE", "MIND", "REST", "PLAY"];
+    let foundWords = [];
+    let wsGridData = [];
+    let selection = [];
+
+    function initWordSearch() {
+      const container = document.getElementById('ws-game-area');
+      foundWords = [];
+      selection = [];
+      
+      let grid = Array(10).fill().map(() => Array(10).fill(''));
+      
+      const placeWord = (word) => {
+        let placed = false;
+        while(!placed) {
+          let row = Math.floor(Math.random() * 10);
+          let col = Math.floor(Math.random() * 10);
+          let dirH = Math.random() > 0.5;
+          
+          if (dirH && col + word.length <= 10) {
+            let canPlace = true;
+            for(let i=0; i<word.length; i++) if(grid[row][col+i] !== '' && grid[row][col+i] !== word[i]) canPlace = false;
+            if(canPlace) {
+              for(let i=0; i<word.length; i++) grid[row][col+i] = word[i];
+              placed = true;
+            }
+          } else if (!dirH && row + word.length <= 10) {
+            let canPlace = true;
+            for(let i=0; i<word.length; i++) if(grid[row+i][col] !== '' && grid[row+i][col] !== word[i]) canPlace = false;
+            if(canPlace) {
+              for(let i=0; i<word.length; i++) grid[row+i][col] = word[i];
+              placed = true;
+            }
+          }
+        }
+      };
+
+      wordsToFind.forEach(w => placeWord(w));
+      
+      for(let r=0; r<10; r++) {
+        for(let c=0; c<10; c++) {
+          if(grid[r][c] === '') grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random()*26));
+        }
+      }
+      
+      wsGridData = grid;
+      
+      let html = '<div class="ws-grid">';
+      for(let r=0; r<10; r++) {
+        for(let c=0; c<10; c++) {
+          html += `<div class="ws-cell" onclick="wsSelect(${r}, ${c})">${grid[r][c]}</div>`;
+        }
+      }
+      html += '</div><div class="ws-words">';
+      wordsToFind.forEach(w => html += `<div class="ws-word-item" id="ws-word-${w}">${w}</div>`);
+      html += '</div>';
+      
+      container.innerHTML = html;
+    }
+
+    function wsSelect(r, c) {
+      const cell = document.querySelector(`.ws-grid div:nth-child(${r*10+c+1})`);
+      const idx = selection.findIndex(i => i.r === r && i.c === c);
+      
+      if(idx >= 0) {
+        selection.splice(idx, 1);
+        cell.classList.remove('selected');
+      } else {
+        selection.push({r, c, val: wsGridData[r][c]});
+        cell.classList.add('selected');
+      }
+      
+      checkWord();
+    }
+
+    function checkWord() {
+      let str = selection.map(s => s.val).join('');
+      let foundWord = wordsToFind.find(w => w === str);
+      
+      if(foundWord && !foundWords.includes(foundWord)) {
+        foundWords.push(foundWord);
+        document.getElementById('ws-word-'+foundWord).classList.add('found');
+        selection.forEach(s => {
+           document.querySelector(`.ws-grid div:nth-child(${s.r*10+s.c+1})`).classList.remove('selected');
+           document.querySelector(`.ws-grid div:nth-child(${s.r*10+s.c+1})`).classList.add('found');
+        });
+        selection = [];
+        showToast('Found: ' + foundWord + '!');
+        
+        if(foundWords.length === wordsToFind.length) {
+          setTimeout(() => showToast('You found all words!', 'success'), 300);
+        }
+      }
+    }
+
+    // 3. CROSSWORD
+    function initCrossword() {
+      const container = document.getElementById('cw-game-area');
+      const layout = [
+        [0,0,0,0,0],
+        [1,1,0,1,0],
+        [0,0,0,0,0],
+        [0,1,1,1,0],
+        [0,0,0,0,0]
+      ];
+      
+      let html = '<div class="cw-grid">';
+      for(let r=0; r<5; r++) {
+        for(let c=0; c<5; c++) {
+          const blocked = layout[r][c] === 1;
+          html += `<input type="text" maxlength="1" class="cw-cell ${blocked?'blocked':''}" ${blocked?'disabled':''} data-row="${r}" data-col="${c}">`;
+        }
+      }
+      html += '</div>';
+      html += `<div class="cw-clues">
+        <p><strong>Across:</strong> 1. To unwind (5)<br>3. Peaceful state (4)<br>5. Harmony (5)</p>
+        <p><strong>Down:</strong> 2. Meditation focus (3)<br>4. Not fast (4)</p>
+      </div>`;
+      
+      container.innerHTML = html;
+    }
+
+    function checkCrossword() {
+      const getRow = (r) => [...document.querySelectorAll(`.cw-cell[data-row="${r}"]:not(.blocked)`)].map(c=>c.value.toUpperCase()).join('');
+      
+      let pass = true;
+      if(getRow(0) !== 'RELAX') pass = false;
+      if(getRow(2) !== 'CALM') pass = false;
+      if(getRow(4) !== 'PEACE') pass = false;
+
+      if(pass) showToast('Correct! Well done!', 'success');
+      else showToast('Some answers are incorrect.', 'error');
+    }
+
+  </script>
+</body>
+</html>
